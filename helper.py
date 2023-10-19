@@ -11,7 +11,7 @@ import numpy as np
 from scipy import optimize
 
 E_C = 1
-EPS = 1
+EPS = 8.8541878128e-12
 HBAR = 1
 C = 1
 
