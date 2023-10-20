@@ -82,8 +82,15 @@ if 0:
     plt.show()
 
 
-
 ############ fit func ############
+## separete data into equal A lists
+# equal_a = dict()
+# for nuclei in data:
+#     try:
+#         equal_a[nuclei.a].append(nuclei)
+#     except KeyError:
+#         equal_a[nuclei.a] = [nuclei]
 
-fitter = Fit(1, [1,1], [1,1], [1,1], [1,1], [0.1,0.1])
-fitter.fit()
+# print(equal_a)
+# fitter = Fit(1, [1,1], [1,1], [1,1], [1,1], [0.1,0.1])
+# fitter.fit()

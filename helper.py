@@ -23,6 +23,7 @@ class Nuclei:
     def __init__(self, z, n, hl, hl_e, q, q_e):
         self.z = z
         self.n = n
+        self.a = n+z
         self.hl = hl
         self.hl_e = hl_e
         self.q = q
@@ -86,6 +87,6 @@ class Fit:
 
     def fit(self):
         x = (self.Q, self.Z2, self.delta, self.A)
-        popt, pcov = optimize.curve_fit(self.fit_func, x, self.hl)
+        popt, pcov = optimize.curve_fit(self.fit_func, x, self.hl, bounds=([0],[1]))
         print(popt)
         print(pcov)
