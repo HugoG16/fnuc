@@ -10,10 +10,10 @@ FIX MASS
 import numpy as np
 from scipy import optimize
 
-E_C = 1
+E_C = 1,602176634e-19
 EPS = 8.8541878128e-12
 HBAR = 1.054571817e-24
-C = 1
+C = 299 792 458
 
 K = E_C**2 / (4*np.pi*EPS)
 
