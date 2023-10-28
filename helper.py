@@ -35,56 +35,38 @@ class Nuclei:
         return self.hl > other.hl
 
 class Fit:
-    def __init__(self, f:float, hl:list, Q:list, Z:list, A:list, binding:list ) -> None:
-        """
-        INPUT
-        ---------
-        f : hit frequency [Hz]
-        hl : list of half life's [s]
-        Q : list of Q values [keV]
-        Z : list of Z values of daughter [1]
-        A : list of A values of daughter [1]
-        binding : list of values for the binding energy of daughter [keV]
-        """
-        hl = np.asarray(hl)
-        Q = np.asarray(Q)
-        Z = np.asarray(Z)
-        A = np.asarray(A)
-        binding = np.asarray(binding)
-
+    def __init__(self, f:float, hl:float, Q:float, Z:float, A:float) -> None:
         self.f = f
         self.hl = hl
-        self.Q = Q/1000 * EV_TO_J
+        self.Q = Q*1000 * EV_TO_J
         self.z = 2
         self.Z = Z
         self.A = A
-        self.binding = binding/1000 * EV_TO_J
-    
-    def bc(self, Q, Z):
-        return Q / (K* self.z * Z)
-    
-    def m(self, A, binding):
-        mx = A*U_TO_KG + binding/C**2
-        return MASS_ALPHA*mx / (MASS_ALPHA+mx)
-    
-    def G(self, Q, Z, binding, A, a):
-        x = a / self.bc(A, binding)
+        
+        mx = A*U_TO_KG
+        self.m = MASS_ALPHA*mx / (MASS_ALPHA+mx)
 
-        c1 = np.sqrt(2 * self.m(A, binding) / HBAR**2 / Q)
+    def bc(self, Q, Z):
+        return K * self.z * Z / Q
+    
+    def G(self, Q, Z, A, a):
+        x = a / self.bc(Q, Z)
+
+        c1 = np.sqrt(2 * self.m / HBAR**2 / Q)
         c2 = self.z * Z * K
         c3 = np.arccos(np.sqrt(x)) - np.sqrt(x*(1-x))
 
         return c1*c2*c3
     
-    def P(self, Q, Z, binding, A, a):
-        return np.exp(-2*self.G(Q, Z, binding, A, a))
+    def P(self, Q, Z, A, a):
+        return np.exp(-2*self.G(Q, Z, A, a))
     
     def fit_func(self, x, a):
-        Q, Z, binding, A = x
-        return LOG2 / (self.f * self.P(Q, Z, binding, A, a))
+        Q, Z = x
+        return LOG2 / (self.f * self.P(Q, Z, self.A, a))
     
-    def fit(self):
-        x = (self.Q, self.Z, self.binding, self.A)
-        popt, pcov = optimize.curve_fit(self.fit_func, x, self.hl, bounds=([0],[1]))
-        print(popt)
-        print(pcov)
+    def root_func(self, a):
+        return self.fit_func((self.Q, self.Z), a) - self.hl
+    
+    def find_root(self):
+        return optimize.root(self.root_func, 1.25e-15 * self.A**(1/3))

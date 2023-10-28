@@ -5,6 +5,8 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from scipy import optimize
+
 from pathlib import Path
 import matplotlib.font_manager as font_manager
 font_path = Path(mpl.get_data_path(), "fonts/ttf/cmr10.ttf")
@@ -28,7 +30,7 @@ with open('output.csv') as csv_file:
         q, q_e, binding, binding_e = float(row[4]), float(row[5]), float(row[6]), float(row[7])
 
 
-        print((z+n)*931000/binding)
+        # print((z+n)*931000/binding)
 
         nuclei = Nuclei(z, n, hl, hl_e, q, q_e, binding, binding_e)
         data.append(nuclei)
@@ -78,15 +80,49 @@ if 0:
     # plt.savefig('geiger.png', dpi=300)
     plt.show()
 
-############ fit func ############
-# separete data into equal A lists
-# equal_a = dict()
-# for nuclei in data:
-#     try:
-#         equal_a[nuclei.a].append(nuclei)
-#     except KeyError:
-#         equal_a[nuclei.a] = [nuclei]
+############ root finding ############
+if 1:
+    ## separete data into equal A lists
+    equal_a = dict()
+    for nuclei in data:
+        try:
+            equal_a[nuclei.a].append(nuclei)
+        except KeyError:
+            equal_a[nuclei.a] = [nuclei]
+    
+    ## find root
+    x = []
+    y = []
+    for a in equal_a:
+        for nuclei in equal_a[a]:
+            hl = nuclei.hl
+            Q = nuclei.q
+            Z = nuclei.z-2
+            A = a-4
+            """
+            CALCULAR A FREQUENCIA PARA CADA NUCLEO
+            """
+            fitter = Fit(6e21, hl, Q, Z, A)
+            sol = fitter.find_root()
 
-# print(equal_a)
-# fitter = Fit(1, [1,1], [1,1], [1,1], [1,1], [0.1,0.1])
-# fitter.fit()
+            y.append(sol.x[0])
+            x.append(a)
+
+    ## plot roots
+    x = np.asarray(x)
+    y = np.asarray(y)
+    plt.plot(x,y, '.')
+    plt.ylim(0, 1e-14)
+    plt.grid()
+
+    ## fit func
+    def fit_func(x, r0):
+        return r0 * x**(1/3)
+
+    popt, pcov = optimize.curve_fit(fit_func, x, y)
+    x_fit = np.linspace(0, 300, 300)
+    y_fit = fit_func(x_fit, *popt)
+    plt.plot(x_fit, y_fit)
+
+    print(popt)
+    plt.show()
