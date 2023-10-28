@@ -64,10 +64,11 @@ class Fit:
     def f(self, a):
         vel = np.sqrt(2*(self.V0+self.Q)/MASS_ALPHA)
         return vel / a
+        # return 6e21
 
     def fit_func(self, x, a):
         Q, Z = x
-        return LOG2 / (self.f * self.P(Q, Z, self.A, a))
+        return LOG2 / (self.f(a) * self.P(Q, Z, self.A, a))
     
     def root_func(self, a):
         return self.fit_func((self.Q, self.Z), a) - self.hl
