@@ -5,17 +5,11 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
-from scipy import optimize
+from scipy import optimize, stats
 
-from pathlib import Path
-import matplotlib.font_manager as font_manager
-font_path = Path(mpl.get_data_path(), "fonts/ttf/cmr10.ttf")
-font_manager.fontManager.addfont(font_path)
-prop = font_manager.FontProperties(fname=font_path)
-plt.rcParams['font.family'] = 'sans-serif'
-plt.rcParams['font.sans-serif'] = prop.get_name()
 plt.rcParams['font.size'] = 12
-plt.rcParams["axes.formatter.use_mathtext"] = True
+mpl.rcParams['mathtext.fontset'] = 'stix'
+mpl.rcParams['font.family'] = 'STIXGeneral'
 
 from helper import *
 
@@ -28,9 +22,6 @@ with open('output.csv') as csv_file:
     for row in csv_reader:
         z, n, hl, hl_e  = float(row[0]), float(row[1]), float(row[2]), float(row[3])
         q, q_e, binding, binding_e = float(row[4]), float(row[5]), float(row[6]), float(row[7])
-
-
-        # print((z+n)*931000/binding)
 
         nuclei = Nuclei(z, n, hl, hl_e, q, q_e, binding, binding_e)
         data.append(nuclei)
@@ -56,8 +47,8 @@ for z in equal_z_temp:
         equal_z.pop(z)
 
 ############ geiger law ############
-if 0:
-    cmap = plt.get_cmap('turbo', 16)
+if 1:
+    cmap = plt.get_cmap('turbo', 12)
     for i, z in enumerate(equal_z):
         q_list = list()
         hl_list = list()
@@ -73,56 +64,54 @@ if 0:
 
 
     plt.ylabel('Half-life (Seconds)')
-    plt.xlabel('Q (keVs) ^ -1/2')
+    plt.xlabel(r'$\sqrt{\mathrm{Q (keVs)}}$')
     plt.legend(loc='center left', bbox_to_anchor=(1, 0.5))
     plt.grid()
     plt.tight_layout()
-    # plt.savefig('geiger.png', dpi=300)
+    plt.savefig('geiger.png', dpi=300)
     plt.show()
 
 ############ root finding ############
 if 1:
-    ## separete data into equal A lists
-    equal_a = dict()
-    for nuclei in data:
-        try:
-            equal_a[nuclei.a].append(nuclei)
-        except KeyError:
-            equal_a[nuclei.a] = [nuclei]
-    
-    ## find root
     x = []
     y = []
-    for a in equal_a:
-        for nuclei in equal_a[a]:
-            hl = nuclei.hl
-            Q = nuclei.q
-            Z = nuclei.z-2
-            A = a-4
-            """
-            CALCULAR A FREQUENCIA PARA CADA NUCLEO
-            """
-            fitter = Fit(35000, hl, Q, Z, A)
-            sol = fitter.find_root()
-
-            y.append(sol.x[0])
-            x.append(a)
-
+    for nuclei in data:
+        hl = nuclei.hl
+        Q = nuclei.q
+        Z = nuclei.z - 2
+        A = nuclei.z + nuclei.n - 4
+    
+        fitter = Fit(35000, hl, Q, Z, A)
+        sol = fitter.find_root()
+        
+        x.append(A+4)
+        y.append(sol.x[0])
+    
     ## plot roots
     x = np.asarray(x)
     y = np.asarray(y)
-    plt.plot(x,y, '.')
-    plt.ylim(0, 1e-14)
-    plt.grid()
+    plt.plot(x, y*1e15, '+', markersize=5, c='b')
 
     ## fit func
     def fit_func(x, r0):
         return r0 * x**(1/3)
 
     popt, pcov = optimize.curve_fit(fit_func, x, y)
+    print(f'a = {popt[0]} +- {np.sqrt(pcov[0,0])}')
     x_fit = np.linspace(0, 300, 300)
     y_fit = fit_func(x_fit, *popt)
-    plt.plot(x_fit, y_fit)
+    plt.plot(x_fit, y_fit*1e15, c='k')
 
-    print(popt)
+    estimated = fit_func(x, *popt)
+    estimated *= np.sum(y) / np.sum(estimated)
+    chi2, p_value = stats.chisquare(y, estimated, 1)
+    print(f'chi2 = {chi2}')
+    print(f'p_value = {p_value}')
+
+    plt.xlabel('A')
+    plt.ylabel('R (fm)')
+    plt.ylim(0, 10)
+    plt.grid()
+    plt.tight_layout()
+    plt.savefig('radius.png', dpi=300)
     plt.show()
