@@ -5,10 +5,11 @@ import csv
 import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib as mpl
+from scipy import optimize
+
 from pathlib import Path
-fpath = Path(mpl.get_data_path(), "fonts/ttf/cmr10.ttf")
 import matplotlib.font_manager as font_manager
-font_path = fpath
+font_path = Path(mpl.get_data_path(), "fonts/ttf/cmr10.ttf")
 font_manager.fontManager.addfont(font_path)
 prop = font_manager.FontProperties(fname=font_path)
 plt.rcParams['font.family'] = 'sans-serif'
@@ -22,18 +23,16 @@ data = list()
 equal_z = dict()
 
 ## read data
-with open('data.csv') as csv_file:
+with open('output.csv') as csv_file:
     csv_reader = csv.reader(csv_file, delimiter=',')
-    line_count = 0
     for row in csv_reader:
-        z, n, hl, hl_e, q, q_e = row[1], row[2], row[3], row[4], row[5], row[6]
+        z, n, hl, hl_e  = float(row[0]), float(row[1]), float(row[2]), float(row[3])
+        q, q_e, binding, binding_e = float(row[4]), float(row[5]), float(row[6]), float(row[7])
 
-        try:
-            z, n, hl, hl_e, q, q_e = float(z), float(n), float(hl), float(hl_e), float(q), float(q_e)
-        except:
-            z, n, hl, hl_e, q, q_e = float(z), float(n), float(hl), 0, float(q), float(q_e)
 
-        nuclei = Nuclei(z, n, hl, hl_e, q, q_e)
+        # print((z+n)*931000/binding)
+
+        nuclei = Nuclei(z, n, hl, hl_e, q, q_e, binding, binding_e)
         data.append(nuclei)
 
 ## separete data into equal z lists
@@ -81,16 +80,49 @@ if 0:
     # plt.savefig('geiger.png', dpi=300)
     plt.show()
 
+############ root finding ############
+if 1:
+    ## separete data into equal A lists
+    equal_a = dict()
+    for nuclei in data:
+        try:
+            equal_a[nuclei.a].append(nuclei)
+        except KeyError:
+            equal_a[nuclei.a] = [nuclei]
+    
+    ## find root
+    x = []
+    y = []
+    for a in equal_a:
+        for nuclei in equal_a[a]:
+            hl = nuclei.hl
+            Q = nuclei.q
+            Z = nuclei.z-2
+            A = a-4
+            """
+            CALCULAR A FREQUENCIA PARA CADA NUCLEO
+            """
+            fitter = Fit(6e21, hl, Q, Z, A)
+            sol = fitter.find_root()
 
-############ fit func ############
-## separete data into equal A lists
-# equal_a = dict()
-# for nuclei in data:
-#     try:
-#         equal_a[nuclei.a].append(nuclei)
-#     except KeyError:
-#         equal_a[nuclei.a] = [nuclei]
+            y.append(sol.x[0])
+            x.append(a)
 
-# print(equal_a)
-# fitter = Fit(1, [1,1], [1,1], [1,1], [1,1], [0.1,0.1])
-# fitter.fit()
+    ## plot roots
+    x = np.asarray(x)
+    y = np.asarray(y)
+    plt.plot(x,y, '.')
+    plt.ylim(0, 1e-14)
+    plt.grid()
+
+    ## fit func
+    def fit_func(x, r0):
+        return r0 * x**(1/3)
+
+    popt, pcov = optimize.curve_fit(fit_func, x, y)
+    x_fit = np.linspace(0, 300, 300)
+    y_fit = fit_func(x_fit, *popt)
+    plt.plot(x_fit, y_fit)
+
+    print(popt)
+    plt.show()
