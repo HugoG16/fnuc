@@ -37,8 +37,8 @@ class Nuclei:
         return self.hl > other.hl
 
 class Fit:
-    def __init__(self, f:float, hl:float, Q:float, Z:float, A:float) -> None:
-        self.f = f
+    def __init__(self, V0:float, hl:float, Q:float, Z:float, A:float) -> None:
+        self.V0 = V0*1000 * EV_TO_J
         self.hl = hl
         self.Q = Q*1000 * EV_TO_J
         self.z = 2
@@ -63,9 +63,14 @@ class Fit:
     def P(self, Q, Z, A, a):
         return np.exp(-2*self.G(Q, Z, A, a))
     
+    def f(self, a):
+        vel = np.sqrt(2*(self.V0+self.Q)/MASS_ALPHA)
+        return vel / a
+        # return 6e21
+
     def fit_func(self, x, a):
         Q, Z = x
-        return LOG2 / (self.f * self.P(Q, Z, self.A, a))
+        return LOG2 / (self.f(a) * self.P(Q, Z, self.A, a))
     
     def root_func(self, a):
         return self.fit_func((self.Q, self.Z), a) - self.hl

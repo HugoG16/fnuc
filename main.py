@@ -102,7 +102,7 @@ if 1:
             """
             CALCULAR A FREQUENCIA PARA CADA NUCLEO
             """
-            fitter = Fit(6e21, hl, Q, Z, A)
+            fitter = Fit(35000, hl, Q, Z, A)
             sol = fitter.find_root()
 
             y.append(sol.x[0])
