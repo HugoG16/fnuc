@@ -1,6 +1,7 @@
 import numpy as np
 from scipy import optimize
 
+
 E_C = 1.602176634e-19
 EPS = 8.8541878128e-12
 HBAR = 1.054571817e-34
@@ -8,6 +9,7 @@ C = 299792458
 MASS_ALPHA = 6.6446573357e-27
 U_TO_KG = 1.66053906660e-27
 EV_TO_J = 1.602176634e-19
+
 
 K = E_C**2 / (4*np.pi*EPS)
 
